@@ -8,7 +8,8 @@ y <- tsibble(
   index = Year
 )
 
-prison <- readr::read_csv("https://OTexts.com/fpp3/extrafiles/prison_population.csv")
+prison <-
+  readr::read_csv("https://OTexts.com/fpp3/extrafiles/prison_population.csv")
 
 prison <- prison |>
   mutate(Quarter = yearquarter(Date)) |>
@@ -135,7 +136,11 @@ a10 |>
 
 # 2.9
 set.seed(30)
-y <- tsibble(sample = 1:50, wn = rnorm(50), index = sample)
+y <- tsibble(
+  sample = 1:50,
+  wn = rnorm(50),
+  index = sample
+)
 y |> autoplot(wn) + labs(title = "White noise", y = "")
 
 y |>
@@ -175,15 +180,25 @@ library(USgas)
 annual <- us_total |>
   as_tsibble(key = state, index = year)
 
-new_england <- c("Maine", "Vermont", "New Hampshire", "Massachusetts", "Connecticut", "Rhode Island")
+new_england <-
+  c(
+    "Maine",
+    "Vermont",
+    "New Hampshire",
+    "Massachusetts",
+    "Connecticut",
+    "Rhode Island"
+  )
 
 annual |>
   filter(state %in% new_england) |>
   ggplot(aes(x = year, y = y, colour = state)) +
   geom_line() +
   labs(
-    title = "Annual consumption of gas by state", x = "Year",
-    y = "Consumption [mcf]", color = "State"
+    title = "Annual consumption of gas by state",
+    x = "Year",
+    y = "Consumption [mcf]",
+    color = "State"
   )
 
 tourismX <- readxl::read_excel("tourism.xlsx")
@@ -233,3 +248,27 @@ emp |> gg_lag(lags = 1:12)
 emp |>
   ACF(Employed, lag_max = 24) |>
   autoplot() + labs(title = "Employment ACF plot")
+
+aus_livestock |>
+  filter(
+    State == "Victoria",
+    Animal == "Pigs",
+    between(year(Month), 1990, 1995)
+  ) -> pigs
+
+pigs |> autoplot()
+
+pigs |>
+  ACF(Count, lag_max = 24) |>
+  autoplot()
+
+dgoog <- gafa_stock |>
+  filter(Symbol == "GOOG", year(Date) >= 2018) |>
+  mutate(trading_day = row_number()) |>
+  update_tsibble(index = trading_day, regular = TRUE) |>
+  mutate(diff = difference(Close))
+
+dgoog |> autoplot(diff)
+dgoog |>
+  ACF(diff, lag_max = 30) |>
+  autoplot()
