@@ -1,7 +1,7 @@
 library(fpp3)
 setwd("/home/korpog/Documents/prog3/forecasting")
 
-# 3.1
+# 3.1 Transformations and adjustments
 global_economy |>
   filter(Country == "Australia") |>
   autoplot(GDP / Population) +
@@ -46,7 +46,7 @@ aus_production |>
     ))
   )
 
-# 3.2
+# 3.2 Time series components
 us_retail_employment <- us_employment |>
   filter(year(Month) >= 1990, Title == "Retail Trade") |>
   select(-Series_ID)
@@ -80,7 +80,7 @@ components(dcmp) |>
     title = "Total employment in US retail"
   )
 
-# 3.3
+# 3.3 Moving averages
 global_economy |>
   filter(Country == "Australia") |>
   autoplot(Exports) +
@@ -124,10 +124,52 @@ us_retail_employment_ma <- us_retail_employment |>
       .before = 1, .after = 0, .complete = TRUE
     )
   )
+
+# 3.4 Classical decomposition
 us_retail_employment_ma |>
   autoplot(Employed, colour = "gray") +
   geom_line(aes(y = `2x12-MA`), colour = "#D55E00") +
   labs(
     y = "Persons (thousands)",
     title = "Total employment in US retail"
+  )
+
+# 3.5 Methods used by official statistics agencies
+library(seasonal)
+x11_dcmp <- us_retail_employment |>
+  model(x11 = X_13ARIMA_SEATS(Employed ~ x11())) |>
+  components()
+autoplot(x11_dcmp) +
+  labs(
+    title =
+      "Decomposition of total US retail employment using X-11."
+  )
+
+x11_dcmp |>
+  ggplot(aes(x = Month)) +
+  geom_line(aes(y = Employed, colour = "Data")) +
+  geom_line(aes(
+    y = season_adjust,
+    colour = "Seasonally Adjusted"
+  )) +
+  geom_line(aes(y = trend, colour = "Trend")) +
+  labs(
+    y = "Persons (thousands)",
+    title = "Total employment in US retail"
+  ) +
+  scale_colour_manual(
+    values = c("gray", "#0072B2", "#D55E00"),
+    breaks = c("Data", "Seasonally Adjusted", "Trend")
+  )
+
+x11_dcmp |>
+  gg_subseries(seasonal)
+
+seats_dcmp <- us_retail_employment |>
+  model(seats = X_13ARIMA_SEATS(Employed ~ seats())) |>
+  components()
+autoplot(seats_dcmp) +
+  labs(
+    title =
+      "Decomposition of total US retail employment using SEATS"
   )

@@ -1,7 +1,7 @@
 library(fpp3)
 setwd("/home/korpog/Documents/prog3/forecasting")
 
-# 2.1
+# 2.1 tsibble objects
 y <- tsibble(
   Year = 2015:2019,
   Observation = c(123, 39, 78, 52, 110),
@@ -25,7 +25,7 @@ PBS |>
   summarise(TotalC = sum(Cost)) |>
   mutate(Cost = TotalC / 1e6) -> a10
 
-# 2.2
+# 2.2 Time plots
 melsyd_economy <- ansett |>
   filter(Airports == "MEL-SYD", Class == "Economy") |>
   mutate(Passengers = Passengers / 1000)
@@ -42,7 +42,7 @@ autoplot(a10, Cost) +
     title = "Australian antidiabetic drug sales"
   )
 
-# 2.4
+# 2.4 Seasonal plots
 a10 |>
   gg_season(Cost, labels = "both") +
   labs(
@@ -58,7 +58,7 @@ vic_elec |> gg_season(Demand, period = "week") +
   theme(legend.position = "none") +
   labs(y = "MWh", title = "Electricity demand: Victoria")
 
-# 2.5
+# 2.5 Seasonal subseries plots
 a10 |>
   gg_subseries(Cost) +
   labs(
@@ -91,7 +91,7 @@ holidays |>
     title = "Australian domestic holidays"
   )
 
-# 2.6
+# 2.6 Scatterplots
 vic_elec |>
   filter(year(Time) == 2014) |>
   ggplot(aes(x = Temperature, y = Demand)) +
@@ -117,14 +117,14 @@ visitors |>
   pivot_wider(values_from = Trips, names_from = State) |>
   GGally::ggpairs(columns = 2:9)
 
-# 2.7
+# 2.7 Lag plots
 recent_production <- aus_production |>
   filter(year(Quarter) >= 2000)
 recent_production |>
   gg_lag(Beer, geom = "point") +
   labs(x = "lag(Beer, k)")
 
-# 2.8
+# 2.8 Autocorrelation
 recent_production |>
   ACF(Beer) |>
   autoplot() + labs(title = "Australian beer production")
@@ -134,7 +134,7 @@ a10 |>
   autoplot() +
   labs(title = "Australian antidiabetic drug sales")
 
-# 2.9
+# 2.9 White noise
 set.seed(30)
 y <- tsibble(
   sample = 1:50,
