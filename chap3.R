@@ -173,3 +173,31 @@ autoplot(seats_dcmp) +
     title =
       "Decomposition of total US retail employment using SEATS"
   )
+
+# 3.6 STL decomposition
+us_retail_employment |>
+  model(
+    STL(
+      Employed ~ trend(window = 7) +
+        season(window = "periodic"),
+      robust = TRUE
+    )
+  ) |>
+  components() |>
+  autoplot()
+
+# 3.7 exercises
+View(global_economy)
+
+global_economy |>
+  filter(is.na(GDP) | is.na(Population) | Population == 0) |>
+  mutate(GDP_Capita = GDP / Population) |>
+  group_by(Country) |>
+  summarise(MaxGDPC = max(GDP_Capita, na.rm = T)) |>
+  arrange(desc(MaxGDPC)) |>
+  head(5)
+
+global_economy |>
+  filter(Country == "United States") |>
+  autoplot(GDP / Population) +
+  labs(title = "GDP per capita", y = "$US")

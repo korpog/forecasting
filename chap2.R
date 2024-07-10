@@ -147,7 +147,7 @@ y |>
   ACF(wn) |>
   autoplot() + labs(title = "White noise")
 
-# 2.10 (exercises)
+# 2.10 exercises
 autoplot(aus_production, Bricks) + labs(title = "Bricks")
 
 autoplot(pelt, Lynx) + labs(title = "Lynx")
