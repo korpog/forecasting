@@ -201,3 +201,118 @@ global_economy |>
   filter(Country == "United States") |>
   autoplot(GDP / Population) +
   labs(title = "GDP per capita", y = "$US")
+
+aus_livestock |>
+  filter(Animal == "Bulls, bullocks and steers", State == "Victoria") |>
+  autoplot()
+
+lambda <- aus_livestock |>
+  filter(Animal == "Bulls, bullocks and steers", State == "Victoria") |>
+  features(Count, features = guerrero) |>
+  pull(lambda_guerrero)
+
+aus_livestock |>
+  filter(Animal == "Bulls, bullocks and steers", State == "Victoria") |>
+  autoplot(box_cox(Count, lambda))
+
+canadian_gas |>
+  autoplot()
+
+lambda_gas <- canadian_gas |>
+  features(Volume, features = guerrero) |>
+  pull(lambda_guerrero)
+
+canadian_gas |>
+  autoplot(box_cox(Volume, lambda_gas))
+
+set.seed(12345678)
+myseries <- aus_retail |>
+  filter(`Series ID` == sample(aus_retail$`Series ID`, 1))
+
+myseries |>
+  autoplot()
+
+lambda_m <- myseries |>
+  features(Turnover, features = guerrero) |>
+  pull(lambda_guerrero)
+
+myseries |>
+  autoplot(box_cox(Turnover, lambda_m))
+
+tobacco <- aus_production |>
+  select(Tobacco)
+
+tobacco |> autoplot()
+
+gas <- tail(aus_production, 5 * 4) |> select(Gas)
+gas |> autoplot()
+
+gas |>
+  model(
+    classical_decomposition(Gas, type = "multiplicative")
+  ) |>
+  components() |>
+  autoplot()
+
+gas_model <- gas |>
+  model(
+    classical_decomposition(Gas, type = "multiplicative")
+  ) |>
+  components()
+
+gas_model |> 
+  ggplot(aes(x = Quarter)) +
+  geom_line(aes(y = Gas, color = "data")) +
+  geom_line(aes(y = season_adjust, color = "Seasonally Adjusted")) +
+  geom_line(aes(y = trend, colour = "Trend"))
+
+gas$Gas[20] = 500
+
+gas_model <- gas |>
+  model(
+    classical_decomposition(Gas, type = "multiplicative")
+  ) |>
+  components()
+
+gas_model |> 
+  ggplot(aes(x = Quarter)) +
+  geom_line(aes(y = Gas, color = "data")) +
+  geom_line(aes(y = season_adjust, color = "Seasonally Adjusted")) +
+  geom_line(aes(y = trend, colour = "Trend"))
+
+
+set.seed(12345678)
+myseries <- aus_retail |>
+  filter(`Series ID` == sample(aus_retail$`Series ID`, 1))
+
+x11_dcmp <- myseries |>
+  model(x11 = X_13ARIMA_SEATS(Turnover ~ x11())) |>
+  components()
+autoplot(x11_dcmp) +
+  labs(title =
+         "Decomposition of total AUS retail using X-11.")
+
+canadian_gas |> autoplot()
+canadian_gas |> gg_subseries()
+canadian_gas |> gg_season()
+
+
+canadian_gas |>
+  model(
+    STL(Volume ~ trend(window = 7) +
+          season(window = 365),
+        robust = TRUE)) |>
+  components() |>
+  autoplot()
+
+gas_model <- canadian_gas |> 
+  model(
+    STL(Volume ~ trend(window = 7) +
+          season(window = 'periodic'),
+        robust = TRUE)) |>
+  components()
+
+gas_model |> 
+  ggplot(aes(x = Month)) +
+  geom_line(aes(y = season_adjust, color = "Seasonally Adjusted"))
+  
