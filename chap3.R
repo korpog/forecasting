@@ -260,13 +260,13 @@ gas_model <- gas |>
   ) |>
   components()
 
-gas_model |> 
+gas_model |>
   ggplot(aes(x = Quarter)) +
   geom_line(aes(y = Gas, color = "data")) +
   geom_line(aes(y = season_adjust, color = "Seasonally Adjusted")) +
   geom_line(aes(y = trend, colour = "Trend"))
 
-gas$Gas[20] = 500
+gas$Gas[20] <- 500
 
 gas_model <- gas |>
   model(
@@ -274,7 +274,7 @@ gas_model <- gas |>
   ) |>
   components()
 
-gas_model |> 
+gas_model |>
   ggplot(aes(x = Quarter)) +
   geom_line(aes(y = Gas, color = "data")) +
   geom_line(aes(y = season_adjust, color = "Seasonally Adjusted")) +
@@ -289,8 +289,10 @@ x11_dcmp <- myseries |>
   model(x11 = X_13ARIMA_SEATS(Turnover ~ x11())) |>
   components()
 autoplot(x11_dcmp) +
-  labs(title =
-         "Decomposition of total AUS retail using X-11.")
+  labs(
+    title =
+      "Decomposition of total AUS retail using X-11."
+  )
 
 canadian_gas |> autoplot()
 canadian_gas |> gg_subseries()
@@ -299,20 +301,25 @@ canadian_gas |> gg_season()
 
 canadian_gas |>
   model(
-    STL(Volume ~ trend(window = 7) +
-          season(window = 365),
-        robust = TRUE)) |>
+    STL(
+      Volume ~ trend(window = 7) +
+        season(window = 365),
+      robust = TRUE
+    )
+  ) |>
   components() |>
   autoplot()
 
-gas_model <- canadian_gas |> 
+gas_model <- canadian_gas |>
   model(
-    STL(Volume ~ trend(window = 7) +
-          season(window = 'periodic'),
-        robust = TRUE)) |>
+    STL(
+      Volume ~ trend(window = 7) +
+        season(window = "periodic"),
+      robust = TRUE
+    )
+  ) |>
   components()
 
-gas_model |> 
+gas_model |>
   ggplot(aes(x = Month)) +
   geom_line(aes(y = season_adjust, color = "Seasonally Adjusted"))
-  
