@@ -318,3 +318,5 @@ fc |>
   accuracy(google_2015, by = c("h", ".model")) |>
   ggplot(aes(x = h, y = RMSE)) +
   geom_point()
+
+# 5.11 exercises
