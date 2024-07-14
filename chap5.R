@@ -264,4 +264,57 @@ google_fc |>
 accuracy(google_fc, google_stock)
 
 # 5.9 Evaluating distributional forecast accuracy
+google_fc |>
+  filter(.model == "Naïve") |>
+  autoplot(bind_rows(google_2015, google_jan_2016), level = 80) +
+  labs(
+    y = "$US",
+    title = "Google closing stock prices"
+  )
 
+google_fc |>
+  filter(.model == "Naïve", Date == "2016-01-04") |>
+  accuracy(google_stock, list(qs = quantile_score), probs = 0.10)
+
+google_fc |>
+  filter(.model == "Naïve", Date == "2016-01-04") |>
+  accuracy(google_stock,
+    list(winkler = winkler_score),
+    level = 80
+  )
+
+google_fc |>
+  accuracy(google_stock, list(crps = CRPS))
+
+google_fc |>
+  accuracy(google_stock, list(skill = skill_score(CRPS)))
+
+# 5.10 Time series cross-validation
+google_2015_tr <- google_2015 |>
+  stretch_tsibble(.init = 3, .step = 1) |>
+  relocate(Date, Symbol, .id)
+google_2015_tr
+
+# TSCV accuracy
+google_2015_tr |>
+  model(RW(Close ~ drift())) |>
+  forecast(h = 1) |>
+  accuracy(google_2015)
+# Training set accuracy
+google_2015 |>
+  model(RW(Close ~ drift())) |>
+  accuracy()
+
+google_2015_tr <- google_2015 |>
+  stretch_tsibble(.init = 3, .step = 1)
+fc <- google_2015_tr |>
+  model(RW(Close ~ drift())) |>
+  forecast(h = 8) |>
+  group_by(.id) |>
+  mutate(h = row_number()) |>
+  ungroup() |>
+  as_fable(response = "Close", distribution = Close)
+fc |>
+  accuracy(google_2015, by = c("h", ".model")) |>
+  ggplot(aes(x = h, y = RMSE)) +
+  geom_point()
