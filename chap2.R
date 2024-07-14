@@ -1,3 +1,5 @@
+# https://otexts.com/fpp3/
+
 library(fpp3)
 setwd("/home/korpog/Documents/prog3/forecasting")
 
