@@ -45,8 +45,7 @@ beer_fc <- beer_fit |> forecast(h = 14)
 # Plot forecasts against actual values
 beer_fc |>
   autoplot(train, level = NULL) +
-  autolayer(
-    filter_index(aus_production, "2007 Q1" ~ .),
+  autolayer(filter_index(aus_production, "2007 Q1" ~ .),
     colour = "black"
   ) +
   labs(
@@ -134,7 +133,11 @@ google_2015 |>
 
 fit <- google_2015 |>
   model(NAIVE(Close))
-sim <- fit |> generate(h = 30, times = 5, bootstrap = TRUE)
+sim <- fit |> generate(
+  h = 30,
+  times = 5,
+  bootstrap = TRUE
+)
 sim
 
 google_2015 |>
@@ -154,7 +157,11 @@ autoplot(fc, google_2015) +
 
 google_2015 |>
   model(NAIVE(Close)) |>
-  forecast(h = 10, bootstrap = TRUE, times = 1000) |>
+  forecast(
+    h = 10,
+    bootstrap = TRUE,
+    times = 1000
+  ) |>
   hilo()
 
 # 5.6 Forecasting using transformations
@@ -165,7 +172,12 @@ fc <- prices |>
   mutate(.median = median(eggs))
 fc |>
   autoplot(prices |> filter(!is.na(eggs)), level = 80, ) +
-  geom_line(aes(y = .median), data = fc, linetype = 3, col = "blue") +
+  geom_line(
+    aes(y = .median),
+    data = fc,
+    linetype = 3,
+    col = "blue"
+  ) +
   labs(
     title = "Annual egg prices",
     y = "$US (in cents adjusted for inflation) "
@@ -230,8 +242,7 @@ beer_fc <- beer_fit |>
   forecast(h = 10)
 
 beer_fc |>
-  autoplot(
-    aus_production |> filter(year(Quarter) >= 1992),
+  autoplot(aus_production |> filter(year(Quarter) >= 1992),
     level = NULL
   ) +
   labs(
@@ -320,3 +331,226 @@ fc |>
   geom_point()
 
 # 5.11 exercises
+ge <- global_economy
+aus <- global_economy |>
+  filter(Country == "Australia") |>
+  select(Country, Population)
+
+aus |> autoplot()
+
+train <- aus |>
+  filter_index(1960 ~ 2007)
+
+test <- aus |>
+  filter_index(2008 ~ .)
+
+aus_fit <- train |>
+  model(`Drift` = RW(Population ~ drift()))
+
+aus_fc <- aus_fit |>
+  forecast(h = 10)
+
+aus_fc |>
+  autoplot(aus, level = 95) +
+  autolayer(test, Population, colour = "red") +
+  guides(colour = guide_legend(title = "Forecast"))
+
+g <- gafa_stock
+
+fb <- g |>
+  filter(Symbol == "FB", year(Date) >= 2014) |>
+  select(Date, Symbol, Close) |>
+  mutate(day = row_number()) |>
+  update_tsibble(index = day, regular = TRUE)
+
+fb_2014 <- fb |>
+  filter(year(Date) == 2014)
+
+fb_jan2015 <- fb |>
+  filter(yearmonth(Date) == yearmonth("2015 Jan"))
+
+fb_fit <- fb_2014 |>
+  model(
+    `Drift` = RW(Close ~ drift()),
+    `NAIVE` = NAIVE(Close)
+  )
+
+fb_fc <- fb_fit |>
+  forecast(new_data = fb_jan2015)
+
+fb_fc |>
+  autoplot(fb_2014, level = 80) +
+  autolayer(fb_jan2015, Close, color = "red")
+
+first_last <- fb_2014 |>
+  slice(c(1, n()))
+
+fb_fc |>
+  autoplot(fb_2014, level = 80) +
+  geom_line(data = first_last, aes(x = day, y = Close), color = "green") +
+  geom_point(
+    data = first_last,
+    aes(x = day, y = Close),
+    color = "red",
+    size = 3
+  )
+
+# Extract data of interest
+recent_production <- aus_production |>
+  filter(year(Quarter) >= 1992)
+# Define and estimate a model
+fit <- recent_production |> model(SNAIVE(Beer))
+# Look at the residuals
+fit |> gg_tsresiduals()
+# Look a some forecasts
+fit |>
+  forecast() |>
+  autoplot(recent_production)
+
+set.seed(12345678)
+myseries <- aus_retail |>
+  filter(`Series ID` == sample(aus_retail$`Series ID`, 1))
+
+myseries_train <- myseries |>
+  filter(year(Month) < 2011)
+
+autoplot(myseries, Turnover) +
+  autolayer(myseries_train, Turnover, colour = "red")
+
+fit <- myseries_train |>
+  model(SNAIVE(Turnover))
+
+fit |> gg_tsresiduals()
+
+fc <- fit |>
+  forecast(new_data = anti_join(myseries, myseries_train))
+fc |> autoplot(myseries)
+
+fit |> accuracy()
+fc |> accuracy(myseries)
+
+al <- aus_livestock
+al
+unique(al$State)
+
+pigs <- al |>
+  filter(Animal == "Pigs", State == "New South Wales")
+
+pigs |> autoplot()
+
+pigs_train <- pigs |>
+  slice(1:486)
+
+pigs_test <- pigs |>
+  slice(487:nrow(pigs))
+
+fit <- pigs_train |>
+  model(
+    MEAN(Count),
+    NAIVE(Count),
+    RW(Count ~ drift())
+  )
+
+fc <- fit |>
+  forecast(new_data = pigs_test)
+
+fc |> autoplot(pigs, level = 80)
+
+accuracy(fc, pigs)
+
+fit$.model
+fit
+
+pigs_train |>
+  model(RW(Count ~ drift())) |>
+  gg_tsresiduals()
+
+# 11
+
+bricks <- aus_production |>
+  select(Quarter, Bricks) |>
+  filter(!is.na(Bricks))
+
+bricks_stl <- bricks |>
+  model(
+    STL(
+      Bricks ~ trend(window = 7) +
+        season(window = "periodic"),
+      robust = TRUE
+    )
+  ) |>
+  components()
+
+bricks_stl |> autoplot()
+
+ggplot(bricks_stl, aes(x = Quarter)) +
+  geom_line(aes(y = season_adjust))
+
+bricks_fit <- bricks_stl |>
+  select(Quarter, season_adjust) |>
+  model(NAIVE(season_adjust))
+
+bricks_fc <- bricks_fit |>
+  forecast(h = 8)
+
+fc_reseason <- bricks |>
+  model(stl_dcmp = decomposition_model(
+    STL(
+      Bricks ~ trend(window = 7) +
+        season(window = "periodic"),
+      robust = TRUE
+    ),
+    NAIVE(season_adjust)
+  )) |>
+  forecast(h = 8)
+
+autoplot(bricks) + autolayer(fc_reseason)
+
+test_set <- bricks |>
+  slice_tail(n = 6)
+
+fc_dcmp <- bricks |>
+  model(stl_dcmp = decomposition_model(
+    STL(
+      Bricks ~ trend(window = 7) +
+        season(window = "periodic"),
+      robust = TRUE
+    ),
+    NAIVE(season_adjust)
+  )) |>
+  forecast(new_data = test_set)
+
+fc_snaive <- bricks |>
+  model(SNAIVE(Bricks)) |>
+  forecast(new_data = test_set)
+
+accuracy(fc_snaive, bricks)
+accuracy(fc_dcmp, bricks)
+
+
+# 12
+gc_tourism <- tourism |>
+  filter(Region == "Gold Coast") |>
+  group_by(Purpose) |>
+  summarise(total_trips = sum(Trips))
+
+gc_train_1 <- gc_tourism |> slice(1:(n() - 4))
+gc_train_2 <- gc_tourism |> slice(1:(n() - 8))
+gc_train_3 <- gc_tourism |> slice(1:(n() - 12))
+
+gc_fc_1 <- gc_train_1 |>
+  model(SNAIVE(total_trips)) |>
+  forecast(h = 4) |>
+  autoplot()
+
+gc_fc_2 <- gc_train_2 |>
+  model(SNAIVE(total_trips)) |>
+  forecast(h = 8)
+
+gc_fc_3 <- gc_train_3 |>
+  model(SNAIVE(total_trips)) |>
+  forecast(h = 12)
+
+accuracy(gc_fc_1, gc_tourism)
+accuracy(gc_fc_2, gc_tourism)
+accuracy(gc_fc_3, gc_tourism)
