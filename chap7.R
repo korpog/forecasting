@@ -134,3 +134,81 @@ report(fourier_beer)
 # 7.5
 glance(fit_consMR) |>
   select(adj_r_squared, CV, AIC, AICc, BIC)
+
+# 7.6
+recent_production <- aus_production |>
+  filter(year(Quarter) >= 1992)
+fit_beer <- recent_production |>
+  model(TSLM(Beer ~ trend() + season()))
+fc_beer <- forecast(fit_beer)
+fc_beer |>
+  autoplot(recent_production) +
+  labs(
+    title = "Forecasts of beer production using regression",
+    y = "megalitres"
+  )
+
+fit_consBest <- us_change |>
+  model(
+    lm = TSLM(Consumption ~ Income + Savings + Unemployment)
+  )
+future_scenarios <- scenarios(
+  Increase = new_data(us_change, 4) |>
+    mutate(Income = 1, Savings = 0.5, Unemployment = 0),
+  Decrease = new_data(us_change, 4) |>
+    mutate(Income = -1, Savings = -0.5, Unemployment = 0),
+  names_to = "Scenario"
+)
+
+fc <- forecast(fit_consBest, new_data = future_scenarios)
+
+us_change |>
+  autoplot(Consumption) +
+  autolayer(fc) +
+  labs(title = "US consumption", y = "% change")
+
+fit_cons <- us_change |>
+  model(TSLM(Consumption ~ Income))
+new_cons <- scenarios(
+  "Average increase" = new_data(us_change, 4) |>
+    mutate(Income = mean(us_change$Income)),
+  "Extreme increase" = new_data(us_change, 4) |>
+    mutate(Income = 12),
+  names_to = "Scenario"
+)
+fcast <- forecast(fit_cons, new_cons)
+
+us_change |>
+  autoplot(Consumption) +
+  autolayer(fcast) +
+  labs(title = "US consumption", y = "% change")
+
+# 7.7
+boston_men <- boston_marathon |>
+  filter(Year >= 1924) |>
+  filter(Event == "Men's open division") |>
+  mutate(Minutes = as.numeric(Time) / 60)
+
+boston_men |> autoplot() +
+  geom_smooth(method = "lm")
+
+
+fit_trends <- boston_men |>
+  model(
+    linear = TSLM(Minutes ~ trend()),
+    exponential = TSLM(log(Minutes) ~ trend()),
+    piecewise = TSLM(Minutes ~ trend(knots = c(1950, 1980)))
+  )
+fc_trends <- fit_trends |> forecast(h = 10)
+
+boston_men |>
+  autoplot(Minutes) +
+  geom_line(
+    data = fitted(fit_trends),
+    aes(y = .fitted, colour = .model)
+  ) +
+  autolayer(fc_trends, alpha = 0.5, level = 95) +
+  labs(
+    y = "Minutes",
+    title = "Boston marathon winning times"
+  )
