@@ -8,10 +8,7 @@ us_change |>
 
 us_change |>
   ggplot(aes(x = Income, y = Consumption)) +
-  labs(
-    y = "Consumption (quarterly % change)",
-    x = "Income (quarterly % change)"
-  ) +
+  labs(y = "Consumption (quarterly % change)", x = "Income (quarterly % change)") +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE)
 
@@ -41,21 +38,14 @@ augment(fit_consMR) |>
   ggplot(aes(x = Quarter)) +
   geom_line(aes(y = Consumption, colour = "Data")) +
   geom_line(aes(y = .fitted, colour = "Fitted")) +
-  labs(
-    y = NULL,
-    title = "Percent change in US consumption expenditure"
-  ) +
+  labs(y = NULL, title = "Percent change in US consumption expenditure") +
   scale_colour_manual(values = c(Data = "black", Fitted = "#D55E00")) +
   guides(colour = guide_legend(title = NULL))
 
 augment(fit_consMR) |>
   ggplot(aes(x = Consumption, y = .fitted)) +
   geom_point() +
-  labs(
-    y = "Fitted (predicted values)",
-    x = "Data (actual values)",
-    title = "Percent change in US consumption expenditure"
-  ) +
+  labs(y = "Fitted (predicted values)", x = "Data (actual values)", title = "Percent change in US consumption expenditure") +
   geom_abline(intercept = 0, slope = 1)
 
 # 7.3
@@ -67,7 +57,8 @@ augment(fit_consMR) |>
 us_change |>
   left_join(residuals(fit_consMR), by = "Quarter") |>
   pivot_longer(Income:Unemployment,
-    names_to = "regressor", values_to = "x"
+    names_to = "regressor",
+    values_to = "x"
   ) |>
   ggplot(aes(x = x, y = .resid)) +
   geom_point() +
@@ -92,10 +83,7 @@ recent_production <- aus_production |>
   filter(year(Quarter) >= 1992)
 recent_production |>
   autoplot(Beer) +
-  labs(
-    y = "Megalitres",
-    title = "Australian quarterly beer production"
-  )
+  labs(y = "Megalitres", title = "Australian quarterly beer production")
 
 fit_beer <- recent_production |>
   model(TSLM(Beer ~ trend() + season()))
@@ -105,25 +93,18 @@ augment(fit_beer) |>
   ggplot(aes(x = Quarter)) +
   geom_line(aes(y = Beer, colour = "Data")) +
   geom_line(aes(y = .fitted, colour = "Fitted")) +
-  scale_colour_manual(
-    values = c(Data = "black", Fitted = "#D55E00")
-  ) +
-  labs(
-    y = "Megalitres",
-    title = "Australian quarterly beer production"
-  ) +
+  scale_colour_manual(values = c(Data = "black", Fitted = "#D55E00")) +
+  labs(y = "Megalitres", title = "Australian quarterly beer production") +
   guides(colour = guide_legend(title = "Series"))
 
 augment(fit_beer) |>
   ggplot(aes(
-    x = Beer, y = .fitted,
+    x = Beer,
+    y = .fitted,
     colour = factor(quarter(Quarter))
   )) +
   geom_point() +
-  labs(
-    y = "Fitted", x = "Actual values",
-    title = "Australian quarterly beer production"
-  ) +
+  labs(y = "Fitted", x = "Actual values", title = "Australian quarterly beer production") +
   geom_abline(intercept = 0, slope = 1) +
   guides(colour = guide_legend(title = "Quarter"))
 
@@ -143,20 +124,23 @@ fit_beer <- recent_production |>
 fc_beer <- forecast(fit_beer)
 fc_beer |>
   autoplot(recent_production) +
-  labs(
-    title = "Forecasts of beer production using regression",
-    y = "megalitres"
-  )
+  labs(title = "Forecasts of beer production using regression", y = "megalitres")
 
 fit_consBest <- us_change |>
-  model(
-    lm = TSLM(Consumption ~ Income + Savings + Unemployment)
-  )
+  model(lm = TSLM(Consumption ~ Income + Savings + Unemployment))
 future_scenarios <- scenarios(
   Increase = new_data(us_change, 4) |>
-    mutate(Income = 1, Savings = 0.5, Unemployment = 0),
+    mutate(
+      Income = 1,
+      Savings = 0.5,
+      Unemployment = 0
+    ),
   Decrease = new_data(us_change, 4) |>
-    mutate(Income = -1, Savings = -0.5, Unemployment = 0),
+    mutate(
+      Income = -1,
+      Savings = -0.5,
+      Unemployment = 0
+    ),
   names_to = "Scenario"
 )
 
@@ -203,12 +187,79 @@ fc_trends <- fit_trends |> forecast(h = 10)
 
 boston_men |>
   autoplot(Minutes) +
-  geom_line(
-    data = fitted(fit_trends),
-    aes(y = .fitted, colour = .model)
-  ) +
+  geom_line(data = fitted(fit_trends), aes(y = .fitted, colour = .model)) +
   autolayer(fc_trends, alpha = 0.5, level = 95) +
-  labs(
-    y = "Minutes",
-    title = "Boston marathon winning times"
+  labs(y = "Minutes", title = "Boston marathon winning times")
+
+# exercises
+
+# 1
+jan14_vic_elec <- vic_elec |>
+  filter(yearmonth(Time) == yearmonth("2014 Jan")) |>
+  index_by(Date = as_date(Time)) |>
+  summarise(
+    Demand = sum(Demand),
+    Temperature = max(Temperature)
   )
+
+jan14_vic_elec |> autoplot()
+
+fit_jan14 <- jan14_vic_elec |>
+  model(TSLM(Demand ~ Temperature)) |>
+  report()
+
+fit_jan14 |> gg_tsresiduals()
+
+new_cons <- scenarios(
+  "15" = new_data(jan14_vic_elec, 1) |>
+    mutate(Temperature = 15),
+  "35" = new_data(jan14_vic_elec, 1) |>
+    mutate(Temperature = 35),
+  names_to = "Scenario"
+)
+
+fit_new <- jan14_vic_elec |>
+  model(TSLM(Demand ~ Temperature)) |>
+  forecast(new_data = new_cons)
+
+jan14_vic_elec |>
+  autoplot(Demand) +
+  autolayer(fit_new, level = 95, alpha = 0.3)
+
+intervals <- fit_new |>
+  hilo(level = 95)
+
+print(intervals)
+
+vic_elec |>
+  index_by(Date = as_date(Time)) |>
+  summarise(
+    Demand = sum(Demand),
+    Temperature = max(Temperature)
+  ) |>
+  autoplot()
+
+# 2
+or <- olympic_running
+
+or |> autoplot(Time)
+
+fit_run <- or |>
+  model(TSLM(Time ~ Year))
+
+fit_run |>
+  filter(Length == 800 & Sex == "men") |>
+  report()
+
+fit_run |>
+  filter(Length == 800 & Sex == "men") |>
+  gg_tsresiduals()
+
+or_fc <- fit_run |>
+  forecast(h = 1) |>
+  hilo(level = 95)
+
+# 4
+suv <- souvenirs
+
+suv |> autoplot()
