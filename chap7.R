@@ -263,3 +263,95 @@ or_fc <- fit_run |>
 suv <- souvenirs
 
 suv |> autoplot()
+
+suv <- suv |>
+  mutate(
+    surfing_festival = if_else(month(Month) == 3 & year(Month) >= 1988, 1, 0)
+  )
+
+suv_fit <- suv |>
+  model(TSLM(log(Sales) ~ trend() + season() + surfing_festival))
+
+report(suv_fit)
+
+suv_fit |> gg_tsresiduals()
+
+aug <- augment(suv_fit)
+
+aug |>
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_point() +
+  labs(x = "Fitted values", y = "Residuals")
+
+aug |>
+  ggplot(aes(x = month(Month, label = TRUE), y = .resid)) +
+  geom_boxplot() +
+  labs(x = "Month", y = "Residuals")
+
+aug |>
+  features(.innov, ljung_box, lag = 10)
+
+future_data <- new_data(suv, n = 36) |>
+  mutate(
+    surfing_festival = if_else(month(Month) == 3, 1, 0)
+  )
+
+fc <- suv_fit |>
+  forecast(new_data = future_data)
+
+fc |>
+  autoplot(suv) +
+  labs(y = "Sales")
+
+# 5
+us_gas <- us_gasoline |>
+  filter(year(Week) <= 2004)
+
+us_gas |> autoplot()
+
+gas_fit <- us_gas |>
+  model(TSLM(Barrels ~ trend() + fourier(K = 7)))
+
+glance(gas_fit) |>
+  select(adj_r_squared, CV, AIC, AICc, BIC)
+
+report(gas_fit)
+
+aug_gas <- augment(gas_fit)
+
+aug_gas |>
+  ggplot(aes(x = Week)) +
+  geom_line(aes(y = Barrels, colour = "Data")) +
+  geom_line(aes(y = .fitted, colour = "Fitted"))
+
+gas_fit |> gg_tsresiduals()
+
+gas_fc <- gas_fit |>
+  forecast(h = 52)
+
+gas_fc |>
+  autoplot(us_gas)
+
+# 6
+afg <- global_economy |>
+  filter(Country == "Afghanistan")
+
+afg |> autoplot(Population)
+
+afg_fit <- afg |>
+  model(
+    TSLM(Population ~ trend()),
+    TSLM(Population ~ trend(knots = c(1980, 1989)))
+  )
+
+glance(afg_fit) |>
+  select(adj_r_squared, CV, AIC, AICc, BIC)
+
+afg_fc <- afg_fit |>
+  forecast(h = 5)
+
+afg_fc |>
+  autoplot(afg)
+
+mean <- afg_fc |>
+  filter(Year == 2022)
